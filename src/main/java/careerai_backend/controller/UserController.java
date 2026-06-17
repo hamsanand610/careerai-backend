@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import careerai_backend.service.JwtService;
 
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -16,7 +17,7 @@ public class UserController {
 
     @Autowired
     private JwtService jwtService;
-
+    
     @GetMapping("/test")
     public String test() {
         return "User API Working Successfully 🚀";
@@ -45,5 +46,4 @@ public class UserController {
 
     return "Welcome " + email;
 }
-
 }

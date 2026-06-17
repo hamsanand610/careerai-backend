@@ -1,8 +1,11 @@
 package careerai_backend.controller;
 
 import careerai_backend.entity.ResumeHistory;
+import careerai_backend.entity.User;
 import careerai_backend.repository.ResumeHistoryRepository;
+import careerai_backend.repository.UserRepository;
 import careerai_backend.service.AIService;
+import careerai_backend.service.JwtService;
 import careerai_backend.service.ResumeService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,9 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import careerai_backend.entity.User;
-import careerai_backend.repository.UserRepository;
-import careerai_backend.service.JwtService;
 
 @RestController
 @RequestMapping("/api/resume")
@@ -42,13 +42,12 @@ public class ResumeController {
             @RequestHeader("Authorization") String token) {
 
         try {
-                                token = token.replace("Bearer ", "");
 
-                String email = jwtService.extractEmail(token);
+            token = token.replace("Bearer ", "");
 
-                User user = userRepository.findByEmail(email);
-                System.out.println("USER EMAIL = " + email);
-System.out.println("USER = " + user);
+            String email = jwtService.extractEmail(token);
+
+            User user = userRepository.findByEmail(email);
 
             String resumeText =
                     resumeService.extractText(file);
@@ -61,67 +60,52 @@ System.out.println("USER = " + user);
 
             int atsScore =
                     resumeService.calculateATSScore(resumeText);
-              ResumeHistory history =
-        new ResumeHistory();
 
-history.setAtsScore(atsScore);
-history.setResumeText(resumeText);
-history.setUploadDate(LocalDateTime.now());
+            ResumeHistory history =
+                    new ResumeHistory();
 
-history.setUser(user);
-System.out.println("========== DEBUG ==========");
-System.out.println("EMAIL FROM TOKEN: " + email);
-System.out.println("USER FOUND: " + user);
-if(user != null){
-    System.out.println("USER ID: " + user.getId());
-    System.out.println("USER EMAIL: " + user.getEmail());
-}
-System.out.println("===========================");
+            history.setAtsScore(atsScore);
+            history.setResumeText(resumeText);
+            history.setUploadDate(LocalDateTime.now());
 
-resumeHistoryRepository.save(history);
-          String aiFeedback =
-        aiService.askAI(
-                
-                """
-                Analyze this software developer resume.
+            // IMPORTANT:
+            // Store resume against logged-in user
+            history.setUser(user);
 
-                Provide:
+            resumeHistoryRepository.save(history);
 
-                1. Strengths
-                2. Weaknesses
-                3. Missing Skills
-                4. ATS Improvements
-                5. Interview Readiness Score
+            String aiFeedback =
+                    aiService.askAI(
+                            """
+                            Analyze this software developer resume.
 
-                Resume:
+                            Provide:
 
-                %s
-                """
-                
-                .formatted(
-                resumeText.length() > 1000
-                        ? resumeText.substring(0, 1000)
-                        : resumeText
-                )
-                
-        );
+                            1. Strengths
+                            2. Weaknesses
+                            3. Missing Skills
+                            4. ATS Improvements
+                            5. Interview Readiness Score
+
+                            Resume:
+
+                            %s
+                            """
+                                    .formatted(
+                                            resumeText.length() > 1000
+                                                    ? resumeText.substring(0, 1000)
+                                                    : resumeText
+                                    )
+                    );
 
             return ResponseEntity.ok(
-
                     atsReport
-
-                    + "\n\n====================\n\n"
-
-                    + roadmap
-
-                    + "\n\n====================\n"
-                    
-                    + "AI RESUME ANALYSIS\n"
-
-                    + "====================\n\n"
-
-                    + aiFeedback
-
+                            + "\n\n====================\n\n"
+                            + roadmap
+                            + "\n\n====================\n"
+                            + "AI RESUME ANALYSIS\n"
+                            + "====================\n\n"
+                            + aiFeedback
             );
 
         } catch (Exception e) {
@@ -131,14 +115,12 @@ resumeHistoryRepository.save(history);
             return ResponseEntity
                     .badRequest()
                     .body("Error reading PDF");
-
         }
     }
 
     @GetMapping("/history")
     public List<ResumeHistory> getHistory(
-            @RequestHeader("Authorization") String token
-    ) {
+            @RequestHeader("Authorization") String token) {
 
         token = token.replace("Bearer ", "");
 
@@ -148,35 +130,26 @@ resumeHistoryRepository.save(history);
 
         return resumeHistoryRepository
                 .findByUserOrderByUploadDateDesc(user);
-
     }
+
     @PostMapping("/extract")
-public ResponseEntity<String> extractResume(
-        @RequestParam("file")
-        MultipartFile file
-) {
+    public ResponseEntity<String> extractResume(
+            @RequestParam("file") MultipartFile file) {
 
-    try {
+        try {
 
-        String resumeText =
-                resumeService.extractText(file);
-        System.out.println("========== RESUME TEXT ==========");
-System.out.println(resumeText);
-System.out.println("=================================");
+            String resumeText =
+                    resumeService.extractText(file);
 
-        return ResponseEntity.ok(
-                resumeText
-        );
+            return ResponseEntity.ok(resumeText);
 
-    } catch (Exception e) {
+        } catch (Exception e) {
 
-        e.printStackTrace();
+            e.printStackTrace();
 
-        return ResponseEntity
-                .badRequest()
-                .body(
-                    "Failed to extract resume"
-                );
+            return ResponseEntity
+                    .badRequest()
+                    .body("Failed to extract resume");
+        }
     }
-}
 }

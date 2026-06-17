@@ -50,7 +50,6 @@ public String getRoadmap(
 Welcome to CareerAI!
 
 Upload your resume to receive:
-
 • Personalized Career Roadmap
 • ATS Analysis
 • Job Recommendations
