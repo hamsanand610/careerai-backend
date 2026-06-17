@@ -12,6 +12,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import careerai_backend.entity.User;
+import careerai_backend.repository.UserRepository;
+import careerai_backend.service.JwtService;
 
 @RestController
 @RequestMapping("/api/resume")
@@ -27,11 +30,25 @@ public class ResumeController {
     @Autowired
     private ResumeHistoryRepository resumeHistoryRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private JwtService jwtService;
+
     @PostMapping("/upload")
     public ResponseEntity<String> uploadResume(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader("Authorization") String token) {
 
         try {
+                                token = token.replace("Bearer ", "");
+
+                String email = jwtService.extractEmail(token);
+
+                User user = userRepository.findByEmail(email);
+                System.out.println("USER EMAIL = " + email);
+System.out.println("USER = " + user);
 
             String resumeText =
                     resumeService.extractText(file);
@@ -44,14 +61,24 @@ public class ResumeController {
 
             int atsScore =
                     resumeService.calculateATSScore(resumeText);
-                ResumeHistory history =
-                        new ResumeHistory();
+              ResumeHistory history =
+        new ResumeHistory();
 
-                history.setAtsScore(atsScore);
-                history.setResumeText(resumeText);
-                history.setUploadDate(LocalDateTime.now());
-            resumeHistoryRepository.save(history);
+history.setAtsScore(atsScore);
+history.setResumeText(resumeText);
+history.setUploadDate(LocalDateTime.now());
 
+history.setUser(user);
+System.out.println("========== DEBUG ==========");
+System.out.println("EMAIL FROM TOKEN: " + email);
+System.out.println("USER FOUND: " + user);
+if(user != null){
+    System.out.println("USER ID: " + user.getId());
+    System.out.println("USER EMAIL: " + user.getEmail());
+}
+System.out.println("===========================");
+
+resumeHistoryRepository.save(history);
           String aiFeedback =
         aiService.askAI(
                 
@@ -109,10 +136,18 @@ public class ResumeController {
     }
 
     @GetMapping("/history")
-    public List<ResumeHistory> getHistory() {
+    public List<ResumeHistory> getHistory(
+            @RequestHeader("Authorization") String token
+    ) {
+
+        token = token.replace("Bearer ", "");
+
+        String email = jwtService.extractEmail(token);
+
+        User user = userRepository.findByEmail(email);
 
         return resumeHistoryRepository
-                .findAllByOrderByUploadDateDesc();
+                .findByUserOrderByUploadDateDesc(user);
 
     }
     @PostMapping("/extract")

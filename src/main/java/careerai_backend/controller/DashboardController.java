@@ -1,6 +1,9 @@
 package careerai_backend.controller;
 
+import careerai_backend.entity.User;
 import careerai_backend.repository.ResumeHistoryRepository;
+import careerai_backend.repository.UserRepository;
+import careerai_backend.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,51 +17,65 @@ public class DashboardController {
     @Autowired
     private ResumeHistoryRepository resumeHistoryRepository;
 
-@GetMapping("/stats")
-public Map<String, Object> getStats() {
+    @Autowired
+    private UserRepository userRepository;
 
-    Map<String, Object> stats = new HashMap<>();
+    @Autowired
+    private JwtService jwtService;
 
-    long totalResumes =
-            resumeHistoryRepository.count();
+    @GetMapping("/stats")
+    public Map<String, Object> getStats(
+            @RequestHeader("Authorization") String token
+    ) {
 
-    stats.put("totalResumes", totalResumes);
+        token = token.replace("Bearer ", "");
 
-    stats.put("aiReviews", totalResumes);
+        String email = jwtService.extractEmail(token);
 
-    Integer latestScore = 0;
+        User user = userRepository.findByEmail(email);
 
-    if (resumeHistoryRepository
-            .findTopByOrderByUploadDateDesc()
-            .isPresent()) {
+        Map<String, Object> stats = new HashMap<>();
 
-        latestScore =
+        long totalResumes =
+                resumeHistoryRepository.countByUser(user);
+
+        stats.put("totalResumes", totalResumes);
+
+        stats.put("aiReviews", totalResumes);
+
+        Integer latestScore = 0;
+
+        var latestResume =
                 resumeHistoryRepository
-                        .findTopByOrderByUploadDateDesc()
-                        .get()
-                        .getAtsScore();
+                        .findTopByUserOrderByUploadDateDesc(user);
+
+        if (latestResume.isPresent()) {
+            latestScore =
+                    latestResume.get().getAtsScore();
+        }
+
+        stats.put("latestScore", latestScore);
+
+        Integer bestScore =
+                resumeHistoryRepository
+                        .findBestScoreByUser(user);
+
+        Double averageScore =
+                resumeHistoryRepository
+                        .findAverageScoreByUser(user);
+
+        stats.put(
+                "bestScore",
+                bestScore == null ? 0 : bestScore
+        );
+
+        stats.put(
+                "averageScore",
+                averageScore == null
+                        ? 0
+                        : Math.round(averageScore)
+        );
+
+        return stats;
     }
-
-    stats.put("latestScore", latestScore);
-
-    Integer bestScore =
-            resumeHistoryRepository.findBestScore();
-
-    Double averageScore =
-            resumeHistoryRepository.findAverageScore();
-
-    stats.put(
-            "bestScore",
-            bestScore == null ? 0 : bestScore
-    );
-
-    stats.put(
-            "averageScore",
-            averageScore == null
-                    ? 0
-                    : Math.round(averageScore)
-    );
-
-    return stats;
-}
 }

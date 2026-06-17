@@ -6,6 +6,9 @@ import careerai_backend.service.InterviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import careerai_backend.dto.InterviewAnswerRequest;
+import careerai_backend.entity.User;
+import careerai_backend.repository.UserRepository;
+import careerai_backend.service.JwtService;
 
 @RestController
 @RequestMapping("/api/interview")
@@ -18,15 +21,28 @@ public class InterviewController {
     @Autowired
     private ResumeHistoryRepository resumeHistoryRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private JwtService jwtService;
+
 @GetMapping("/generate")
 public String generateQuestions(
+        @RequestHeader("Authorization") String token,
         @RequestParam String role,
         @RequestParam String difficulty
 ) {
 
+    token = token.replace("Bearer ", "");
+
+    String email = jwtService.extractEmail(token);
+
+    User user = userRepository.findByEmail(email);
+
     ResumeHistory latestResume =
             resumeHistoryRepository
-                    .findTopByOrderByUploadDateDesc()
+                    .findTopByUserOrderByUploadDateDesc(user)
                     .orElse(null);
 
     if (latestResume == null) {
@@ -38,11 +54,11 @@ public String generateQuestions(
                 """;
     }
 
-   return interviewService
+return interviewService
         .generateQuestionsFromResume(
                 role,
                 difficulty,
-                "Java Spring Boot MySQL React Docker AWS"
+                latestResume.getResumeText()
         );
 }
 @PostMapping("/evaluate")
