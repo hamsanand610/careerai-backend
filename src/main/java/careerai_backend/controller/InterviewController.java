@@ -32,7 +32,8 @@ public String generateQuestions(
         @RequestHeader("Authorization") String token,
         @RequestParam String role,
         @RequestParam String difficulty
-) {
+)
+ {
 
     token = token.replace("Bearer ", "");
 
@@ -60,7 +61,20 @@ return interviewService
                 difficulty,
                 latestResume.getResumeText()
         );
+        
 }
+@GetMapping("/demo")
+public String demoQuestions(
+        @RequestParam String role
+) {
+
+    return interviewService.generateQuestionsFromResume(
+            role,
+            "Beginner",
+            ""
+    );
+}
+
 @PostMapping("/evaluate")
 public String evaluateAnswer(
         @RequestBody InterviewAnswerRequest request

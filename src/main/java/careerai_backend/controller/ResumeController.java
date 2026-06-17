@@ -152,4 +152,30 @@ public class ResumeController {
                     .body("Failed to extract resume");
         }
     }
+    @PostMapping("/demo-upload")
+public ResponseEntity<String> demoUpload(
+        @RequestParam("file") MultipartFile file
+) {
+
+    try {
+
+        String resumeText =
+                resumeService.extractText(file);
+
+        int atsScore =
+                resumeService.calculateATSScore(resumeText);
+
+        return ResponseEntity.ok(
+                "ATS Score: " + atsScore + "/100"
+        );
+
+    } catch (Exception e) {
+
+        e.printStackTrace();
+
+        return ResponseEntity
+                .badRequest()
+                .body("Failed to analyze resume");
+    }
+}
 }
