@@ -13,7 +13,7 @@ import careerai_backend.service.JwtService;
 
 @RestController
 @RequestMapping("/api/roadmap")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 public class RoadmapController {
 
     @Autowired

@@ -12,7 +12,7 @@ import careerai_backend.service.JwtService;
 
 @RestController
 @RequestMapping("/api/jobs")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 public class JobRecommendationController {
 
     @Autowired
